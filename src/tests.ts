@@ -1,7 +1,7 @@
 import { Card } from "./card";
 import { Mana } from "./mana";
 
-export function runTests() {
+export function RunTests() {
     let mana = [Mana.White, Mana.Green, Mana.Red, Mana.Red];
     let card1 = new Card("1", [Mana.White]);
     console.assert(card1.IsCastable(mana));

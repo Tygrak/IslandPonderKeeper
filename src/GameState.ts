@@ -1,5 +1,7 @@
 import { Card } from "./card";
+import { Land } from "./land";
 import { Mana } from "./mana";
+import { Permanent } from "./permanent";
 
 export class GameState {
     turnCount: number = 0;
@@ -43,7 +45,37 @@ export class GameState {
         }
     }
 
+    public PlayLand() {
+        let landIndex = this.hand.findIndex(c => c instanceof Land);
+        if (landIndex == -1) {
+            return false;
+        }
+        this.board.push(this.hand[landIndex]);
+        this.hand.splice(landIndex, 1);
+        this.playedLand = true;
+        return true;
+    }
+
     public AvailableMana() {
-        //todo
+        let mana: Mana[] = [];
+        for (let i = 0; i < this.board.length; i++) {
+            const card = this.board[i];
+            if (card instanceof Land && !(card.enteredThisTurn && card.entersTapped)) {
+                mana.push(card.produces);
+            }
+        }
+        return mana;
+    }
+
+    public StartNewTurn() {
+        this.turnCount++;
+        this.playedLand = false;
+        this.DrawCard(1);
+        for (let i = 0; i < this.board.length; i++) {
+            const card = this.board[i];
+            if (card instanceof Permanent) {
+                card.enteredThisTurn = false;
+            }
+        }
     }
 }

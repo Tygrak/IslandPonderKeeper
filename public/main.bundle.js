@@ -469,60 +469,6 @@ module.exports = styleTagTransform;
 
 /***/ }),
 
-/***/ "./src/GameState.ts":
-/*!**************************!*\
-  !*** ./src/GameState.ts ***!
-  \**************************/
-/***/ ((__unused_webpack_module, exports) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.GameState = void 0;
-class GameState {
-    constructor() {
-        this.turnCount = 0;
-        this.playedLand = false;
-        this.usedMana = 0;
-        this.deck = [];
-        this.hand = [];
-        this.board = [];
-    }
-    static CreateWithDeck(deck) {
-        let state = new GameState();
-        state.deck = deck;
-        state.Shuffle();
-        state.DrawCard(7);
-        return state;
-    }
-    Shuffle() {
-        for (let i = this.deck.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
-        }
-        return this.deck;
-    }
-    ShuffleHandToDeck() {
-        this.deck.push(...this.hand);
-        this.hand = [];
-        this.Shuffle();
-    }
-    DrawCard(amount = 1) {
-        for (let i = 0; i < amount; i++) {
-            if (this.deck.length == 0) {
-                return;
-            }
-            this.hand.push(this.deck.pop());
-        }
-    }
-    AvailableMana() {
-        //todo
-    }
-}
-exports.GameState = GameState;
-
-
-/***/ }),
-
 /***/ "./src/card.ts":
 /*!*********************!*\
   !*** ./src/card.ts ***!
@@ -565,6 +511,123 @@ exports.Card = Card;
 
 /***/ }),
 
+/***/ "./src/deckImport.ts":
+/*!***************************!*\
+  !*** ./src/deckImport.ts ***!
+  \***************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ReadDeckData = void 0;
+const card_1 = __webpack_require__(/*! ./card */ "./src/card.ts");
+function ReadDeckData(dataString) {
+    let deck = [];
+    let lines = dataString.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        line = line.trim();
+        let match = line.match(/(\d+)\s+(.+)/);
+        if (match != null) {
+            const number = parseInt(match[1]);
+            const name = match[2];
+            for (let n = 0; n < number; n++) {
+                //todo read from scryfall data
+                deck.push(new card_1.Card(name, []));
+            }
+        }
+    }
+    return deck;
+}
+exports.ReadDeckData = ReadDeckData;
+
+
+/***/ }),
+
+/***/ "./src/gameState.ts":
+/*!**************************!*\
+  !*** ./src/gameState.ts ***!
+  \**************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GameState = void 0;
+const land_1 = __webpack_require__(/*! ./land */ "./src/land.ts");
+const permanent_1 = __webpack_require__(/*! ./permanent */ "./src/permanent.ts");
+class GameState {
+    constructor() {
+        this.turnCount = 0;
+        this.playedLand = false;
+        this.usedMana = 0;
+        this.deck = [];
+        this.hand = [];
+        this.board = [];
+    }
+    static CreateWithDeck(deck) {
+        let state = new GameState();
+        state.deck = deck;
+        state.Shuffle();
+        state.DrawCard(7);
+        return state;
+    }
+    Shuffle() {
+        for (let i = this.deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
+        }
+        return this.deck;
+    }
+    ShuffleHandToDeck() {
+        this.deck.push(...this.hand);
+        this.hand = [];
+        this.Shuffle();
+    }
+    DrawCard(amount = 1) {
+        for (let i = 0; i < amount; i++) {
+            if (this.deck.length == 0) {
+                return;
+            }
+            this.hand.push(this.deck.pop());
+        }
+    }
+    PlayLand() {
+        let landIndex = this.hand.findIndex(c => c instanceof land_1.Land);
+        if (landIndex == -1) {
+            return false;
+        }
+        this.board.push(this.hand[landIndex]);
+        this.hand.splice(landIndex, 1);
+        this.playedLand = true;
+        return true;
+    }
+    AvailableMana() {
+        let mana = [];
+        for (let i = 0; i < this.board.length; i++) {
+            const card = this.board[i];
+            if (card instanceof land_1.Land && !(card.enteredThisTurn && card.entersTapped)) {
+                mana.push(card.produces);
+            }
+        }
+        return mana;
+    }
+    StartNewTurn() {
+        this.turnCount++;
+        this.playedLand = false;
+        this.DrawCard(1);
+        for (let i = 0; i < this.board.length; i++) {
+            const card = this.board[i];
+            if (card instanceof permanent_1.Permanent) {
+                card.enteredThisTurn = false;
+            }
+        }
+    }
+}
+exports.GameState = GameState;
+
+
+/***/ }),
+
 /***/ "./src/land.ts":
 /*!*********************!*\
   !*** ./src/land.ts ***!
@@ -574,8 +637,8 @@ exports.Card = Card;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Land = void 0;
-const card_1 = __webpack_require__(/*! ./card */ "./src/card.ts");
-class Land extends card_1.Card {
+const permanent_1 = __webpack_require__(/*! ./permanent */ "./src/permanent.ts");
+class Land extends permanent_1.Permanent {
     constructor(name, produces) {
         super(name, []);
         this.produces = produces;
@@ -608,6 +671,28 @@ var Mana;
 
 /***/ }),
 
+/***/ "./src/permanent.ts":
+/*!**************************!*\
+  !*** ./src/permanent.ts ***!
+  \**************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Permanent = void 0;
+const card_1 = __webpack_require__(/*! ./card */ "./src/card.ts");
+class Permanent extends card_1.Card {
+    constructor(name, manaCost) {
+        super(name, manaCost);
+        this.entersTapped = false;
+        this.enteredThisTurn = true;
+    }
+}
+exports.Permanent = Permanent;
+
+
+/***/ }),
+
 /***/ "./src/tests.ts":
 /*!**********************!*\
   !*** ./src/tests.ts ***!
@@ -616,10 +701,10 @@ var Mana;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.runTests = void 0;
+exports.RunTests = void 0;
 const card_1 = __webpack_require__(/*! ./card */ "./src/card.ts");
 const mana_1 = __webpack_require__(/*! ./mana */ "./src/mana.ts");
-function runTests() {
+function RunTests() {
     let mana = [mana_1.Mana.White, mana_1.Mana.Green, mana_1.Mana.Red, mana_1.Mana.Red];
     let card1 = new card_1.Card("1", [mana_1.Mana.White]);
     console.assert(card1.IsCastable(mana));
@@ -641,7 +726,7 @@ function runTests() {
     console.assert(!cardUncastable3.IsCastable(mana));
     console.log("tests finished successfully!!!");
 }
-exports.runTests = runTests;
+exports.RunTests = RunTests;
 
 
 /***/ })
@@ -728,28 +813,40 @@ var exports = __webpack_exports__;
   \*********************/
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const GameState_1 = __webpack_require__(/*! ./GameState */ "./src/GameState.ts");
+__webpack_require__(/*! ./site.css */ "./src/site.css");
+const gameState_1 = __webpack_require__(/*! ./gameState */ "./src/gameState.ts");
 const card_1 = __webpack_require__(/*! ./card */ "./src/card.ts");
 const tests_1 = __webpack_require__(/*! ./tests */ "./src/tests.ts");
 const mana_1 = __webpack_require__(/*! ./mana */ "./src/mana.ts");
-__webpack_require__(/*! ./site.css */ "./src/site.css");
 const land_1 = __webpack_require__(/*! ./land */ "./src/land.ts");
+const deckImport_1 = __webpack_require__(/*! ./deckImport */ "./src/deckImport.ts");
 const mainDiv = document.getElementById('main');
 const simulatedGamesInput = document.getElementById('simulatedGames');
+const deckInput = document.getElementById('deckInput');
+const runSimulationButton = document.getElementById('runSimulation');
+const importDeckButton = document.getElementById('importDeck');
+let deck = [];
 function Initialize() {
     console.log("hi");
     mainDiv.innerText += "hi hi";
-    (0, tests_1.runTests)();
+    (0, tests_1.RunTests)();
+    CreateBaseDeck();
     GetOpeningHandStats();
+}
+function CreateBaseDeck() {
+    let lands = Array(20).fill(new land_1.Land("Swamp", mana_1.Mana.Black));
+    let cards = Array(40).fill(new card_1.Card("Dark Ritual", [mana_1.Mana.Black]));
+    deck = [...lands, ...cards];
 }
 function GetOpeningHandStats() {
     let num = Math.floor(parseFloat(simulatedGamesInput.value));
-    let lands = Array(20).fill(new land_1.Land("Swamp", mana_1.Mana.Black));
-    let cards = Array(40).fill(new card_1.Card("Dark Ritual", [mana_1.Mana.Black]));
-    let deck = [...lands, ...cards];
-    let state = GameState_1.GameState.CreateWithDeck(deck);
+    let state = gameState_1.GameState.CreateWithDeck(deck);
     let landNumbers = Array(8).fill(0);
+    console.log("Starting simulations");
     for (let i = 0; i < num; i++) {
+        if (num > 0 && num % 1000 == 0) {
+            console.log(num + " simulations finished");
+        }
         state.ShuffleHandToDeck();
         state.DrawCard(7);
         let landNumber = 0;
@@ -769,6 +866,11 @@ function GetOpeningHandStats() {
     console.log(result);
 }
 Initialize();
+runSimulationButton.onclick = (ev) => { GetOpeningHandStats(); };
+importDeckButton.onclick = (ev) => {
+    deck = (0, deckImport_1.ReadDeckData)(deckInput.value);
+    console.log("Imported deck data");
+};
 
 })();
 
