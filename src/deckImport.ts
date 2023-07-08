@@ -28,6 +28,21 @@ export function CleanDatabase() {
     SaveFile("database.json", JSON.stringify(cleaned, null, "\t"));*/
 }
 
+export function LoadFile(dataFile: File, callback: Function) {
+    let reader = new FileReader();
+    reader.onload = function (textResult) {
+        if (textResult.target == null) {
+            return;
+        }
+        let text = textResult.target.result;
+        callback(text);
+    }
+    reader.onerror = function (e) {
+        throw ("Loading the data file failed.");
+    }
+    reader.readAsText(dataFile, "UTF-8");
+}
+
 function SaveFile(filename: string, data: string) {
     const blob = new Blob([data], {type: 'text/csv'});
     const elem = window.document.createElement('a');
@@ -43,8 +58,39 @@ export function LoadDatabase() {
         return;
     }
     database = JSON.parse(cardDatabase);
-    console.log(database.length);
+    console.log("Database loaded!");
     loaded = true;
+}
+
+export function ReadDeckDekData(dataString: string) {
+    let deck: Card[] = [];
+    if (dataString.indexOf("Deck") == -1 || dataString.indexOf("Cards") == -1 || dataString.indexOf("CatID") == -1) {
+        return [];
+    }
+    let errorOutputDiv = document.getElementById('errorOutput') as HTMLDivElement;
+    if (errorOutputDiv != null) {
+        errorOutputDiv.innerText = "";
+    }
+    let lines = dataString.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+        let match = lines[i].match(/Quantity="(\d+)" Sideboard="(false|true)" Name="([^"]+)"/);
+        if (match != null) {
+            const number = parseInt(match[1]);
+            const sideboard = match[2];
+            const name = match[3];
+            if (sideboard == "true") {
+                continue;
+            } 
+            for (let n = 0; n < number; n++) {
+                deck.push(CreateCardFromDatabase(name));
+            }
+        }
+    }
+    if (errorOutputDiv != null) {
+        errorOutputDiv.innerText += "Deck Loaded!";
+    }
+    console.log(GetDeckPrettyString(deck));
+    return deck;
 }
 
 export function ReadDeckData(dataString: string) {
@@ -69,7 +115,27 @@ export function ReadDeckData(dataString: string) {
     if (errorOutputDiv != null) {
         errorOutputDiv.innerText += "Deck Loaded!";
     }
+    console.log(GetDeckPrettyString(deck));
     return deck;
+}
+
+export function GetDeckPrettyString(deck: Card[]) {
+    let result = "";
+    let lands = deck.filter(c => c instanceof Land);
+    let spells = deck.filter(c => lands.indexOf(c) == -1);
+    const countsLands: { [index: string]: number; } = {};
+    lands.forEach(x => {countsLands[x.name] = (countsLands[x.name] || 0) + 1;});
+    result += "Lands ("+lands.length +"):\n";
+    for (let name in countsLands) {
+        result += countsLands[name] + " " + name +"\n";
+    }
+    const countsSpells: { [index: string]: number; } = {};
+    spells.forEach(x => {countsSpells[x.name] = (countsSpells[x.name] || 0) + 1;});
+    result += "Spells ("+spells.length +"):\n";
+    for (let name in countsSpells) {
+        result += countsSpells[name]+ " " + name + "\n";
+    }
+    return result;
 }
 
 function FindCardInDatabase(name: string) {
@@ -101,7 +167,7 @@ export function CreateCardFromDatabase(name: string) {
     }
     let type_line: string = data["type_line"];
     let mana_cost: string = data["mana_cost"];
-    let cost: Mana[] = ParseManacost(mana_cost);
+    let cost: Mana[] = ParseManacostScryfall(mana_cost);
     if (type_line !== undefined && type_line.indexOf("Land") != -1) {
         let produced_mana: string[] = data["produced_mana"];
         card = new Land(data.name, ParseProducedMana(produced_mana));
@@ -112,7 +178,7 @@ export function CreateCardFromDatabase(name: string) {
     return card;
 }
 
-export function ParseManacost(mana_cost: string) {
+export function ParseManacostScryfall(mana_cost: string) {
     if (mana_cost === undefined) {
         return [];
     }

@@ -10,7 +10,10 @@
 <body>
    <div class="grid">
       <div class="item1">
-         
+         <div>
+            <button id="deckLoadButton">Load Deck from File</button>
+            <input type="file" id="deckLoadFileInput" name="deckLoadFileInput" accept=".txt,.dek">
+         </div>
          <div>
             <textarea id="deckInput" name="deckInput" rows="20" cols="60">
                4 Simian Spirit Guide
@@ -52,10 +55,13 @@
                <label><input id="maxWantedLands" type="number" min="0" max="7" value="5">Maximum Lands for Keep</label>
             </div>
             <div class="setting">
-               <label><input id="requiredCardsAny" type="text" value="">Required Cards for Keep (any, split with |)</label>
+               <label><input id="wantedAvailableMana" type="text" value="" placeholder="W,U">Can Produce Mana (symbols WUBRG, split with /[,;|]/)</label>
             </div>
             <div class="setting">
-               <label><input id="requiredCardsAll" type="text" value="">Required Cards for Keep (all, split with |)</label>
+               <label><input id="requiredCardsAny" type="text" value="" placeholder="Ponder|Brainstorm">Required Cards for Keep (any, split with |)</label>
+            </div>
+            <div class="setting">
+               <label><input id="requiredCardsAll" type="text" value="" placeholder="Channel|Fireball">Required Cards for Keep (all, split with |)</label>
             </div>
          </div>
          <button id="runSimulation">

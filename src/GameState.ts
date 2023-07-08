@@ -56,17 +56,6 @@ export class GameState {
         return true;
     }
 
-    public AvailableMana() {
-        let mana: Mana[] = [];
-        for (let i = 0; i < this.board.length; i++) {
-            const card = this.board[i];
-            if (card instanceof Land && !(card.enteredThisTurn && card.entersTapped)) {
-                mana.push(card.produces);
-            }
-        }
-        return mana;
-    }
-
     public StartNewTurn() {
         this.turnCount++;
         this.playedLand = false;
@@ -88,5 +77,27 @@ export class GameState {
             }
         }
         return landNumber;
+    }
+
+    public AvailableMana() {
+        let mana: Mana[] = [];
+        for (let i = 0; i < this.board.length; i++) {
+            const card = this.board[i];
+            if (card instanceof Land && !(card.enteredThisTurn && card.entersTapped)) {
+                mana.push(card.produces);
+            }
+        }
+        return mana;
+    }
+
+    public AvailableManaInHand() {
+        let mana: Mana[] = [];
+        for (let i = 0; i < this.hand.length; i++) {
+            const card = this.hand[i];
+            if (card instanceof Land && !(card.enteredThisTurn && card.entersTapped)) {
+                mana.push(card.produces);
+            }
+        }
+        return mana;
     }
 }
