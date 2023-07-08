@@ -36,15 +36,32 @@
          <button id="importDeck">
             Import Deck
          </button>
+         <div class="errorOutput" id="errorOutput">
+            
+         </div>
       </div>
       <div class="item2">
          <div id="settings">
-            <label><input id="simulatedGames" type="number" name="options" min="10" max="100000" value="10000">Simulated Games</label>
+            <div class="setting">
+               <label><input id="simulatedGames" type="number" min="10" max="100000" value="10000">Simulated Games</label>
+            </div>
+            <div class="setting">
+               <label><input id="minWantedLands" type="number" min="0" max="7" value="1">Minimum Lands for Keep</label>
+            </div>
+            <div class="setting">
+               <label><input id="maxWantedLands" type="number" min="0" max="7" value="5">Maximum Lands for Keep</label>
+            </div>
+            <div class="setting">
+               <label><input id="requiredCardsAny" type="text" value="">Required Cards for Keep (any, split with |)</label>
+            </div>
+            <div class="setting">
+               <label><input id="requiredCardsAll" type="text" value="">Required Cards for Keep (all, split with |)</label>
+            </div>
          </div>
          <button id="runSimulation">
             Run Simulation
          </button>
-         <div class="main" id="main" style="user-select: none;">
+         <div class="results" id="results">
             Hello
          </div>
       </div>

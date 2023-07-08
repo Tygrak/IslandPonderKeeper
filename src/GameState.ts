@@ -78,4 +78,15 @@ export class GameState {
             }
         }
     }
+
+    public CountLandsInHand() {
+        let landNumber = 0;
+        for (let c = 0; c < this.hand.length; c++) {
+            let card = this.hand[c];
+            if (card instanceof Land) {
+                landNumber++;
+            }
+        }
+        return landNumber;
+    }
 }

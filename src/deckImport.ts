@@ -4,7 +4,7 @@ import { Mana } from "./mana";
 
 const cardDatabase = require("./data/database.json");
 let loaded = false;
-let database: any = {};
+let database: { [index: string]: any; } = {};
 
 export function CleanDatabase() {
     /*const largeDatabase = require("./data/oracle-cards.json");
@@ -12,6 +12,9 @@ export function CleanDatabase() {
     let cleaned: any = {};
     for (let i = 0; i < database.length; i++) {
         const element = database[i];
+        if (element["layout"] == "art_series") {
+            continue;
+        }
         let img = element["image_uris"] === undefined ? "" : element["image_uris"]["small"];
         let card = {"name": element["name"], "type_line": element["type_line"], 
                     "toughness": element["toughness"], "power": element["power"],
@@ -46,6 +49,10 @@ export function LoadDatabase() {
 
 export function ReadDeckData(dataString: string) {
     let deck: Card[] = [];
+    let errorOutputDiv = document.getElementById('errorOutput') as HTMLDivElement;
+    if (errorOutputDiv != null) {
+        errorOutputDiv.innerText = "";
+    }
     let lines = dataString.split("\n");
     for (let i = 0; i < lines.length; i++) {
         let line = lines[i];
@@ -59,18 +66,37 @@ export function ReadDeckData(dataString: string) {
             }
         }
     }
+    if (errorOutputDiv != null) {
+        errorOutputDiv.innerText += "Deck Loaded!";
+    }
     return deck;
+}
+
+function FindCardInDatabase(name: string) {
+    let data = database[name];
+    if (data === undefined) {
+        for (let key in database) {
+            if (key.indexOf("//") != -1 && key.split("//").map(s => s.trim()).indexOf(name) != -1) {
+                return database[key];
+            }
+        }
+    }
+    return data;
 }
 
 export function CreateCardFromDatabase(name: string) {
     if (!loaded) {
         LoadDatabase();
     }
-    let data = database[name];
+    let data = FindCardInDatabase(name);
     let card: Card;
+    let errorOutputDiv = document.getElementById('errorOutput') as HTMLDivElement;
     if (data === undefined) {
-        //todo add some error printing to site
-        console.error(name + " - not found in database!");
+        let message = name + " - not found in database!";
+        if (errorOutputDiv != null) {
+            errorOutputDiv.innerText += message+"\n";
+        }
+        console.error(message);
         return new Card(name, []);
     }
     let type_line: string = data["type_line"];
@@ -78,15 +104,18 @@ export function CreateCardFromDatabase(name: string) {
     let cost: Mana[] = ParseManacost(mana_cost);
     if (type_line !== undefined && type_line.indexOf("Land") != -1) {
         let produced_mana: string[] = data["produced_mana"];
-        card = new Land(name, ParseProducedMana(produced_mana));
+        card = new Land(data.name, ParseProducedMana(produced_mana));
     } else {
-        card = new Card(name, cost);
+        card = new Card(data.name, cost);
     }
     card.typeLine = type_line;
     return card;
 }
 
 export function ParseManacost(mana_cost: string) {
+    if (mana_cost === undefined) {
+        return [];
+    }
     let cost: Mana[] = [];
     let matches = mana_cost.matchAll(/{(.+?)}/g);
     for (const match of matches) {
@@ -119,6 +148,9 @@ export function ParseManacost(mana_cost: string) {
 }
 
 export function ParseProducedMana(produced_mana: string[]) {
+    if (produced_mana === undefined) {
+        return Mana.Colorless;
+    }
     let mana: Mana = Mana.Colorless;
     for (let i = 0; i < produced_mana.length; i++) {
         if (produced_mana[i].indexOf("W") != -1) {
