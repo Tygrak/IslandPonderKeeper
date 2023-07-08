@@ -8,5 +8,6 @@ export class Land extends Permanent {
     constructor (name: string, produces: Mana) {
         super(name, []);
         this.produces = produces;
+        this.typeLine = "Land";
     }
 }

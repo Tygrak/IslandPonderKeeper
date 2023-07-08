@@ -3,6 +3,7 @@ import { Mana } from "./mana";
 export class Card {
     name: string;
     manaCost: Mana[];
+    typeLine: string = "";
 
     constructor (name: string, manaCost: Mana[]) {
         this.name = name;
@@ -28,5 +29,9 @@ export class Card {
             available.splice(id, 1);
         }
         return true;
+    }
+
+    public IsType(type: string) {
+        return this.typeLine.indexOf(type) != -1;
     }
 }

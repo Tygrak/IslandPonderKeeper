@@ -28,6 +28,10 @@ module.exports = {
             {
                 test: /\.xml$/i,
                 type: 'asset/source',
+            },
+            {
+                test: /\.json$/i,
+                type: 'asset/source',
             }
         ]
     }

@@ -3,3 +3,4 @@ testData
 /dist
 /node_modules
 /data
+/src/data/oracle-cards.json

@@ -5,7 +5,7 @@ import { Card } from "./card";
 import { RunTests as RunTests } from "./tests";
 import { Mana } from "./mana";
 import { Land } from "./land";
-import { ReadDeckData } from "./deckImport";
+import { CleanDatabase, LoadDatabase, ReadDeckData } from "./deckImport";
 
 const mainDiv = document.getElementById('main') as HTMLDivElement;
 const simulatedGamesInput = document.getElementById('simulatedGames') as HTMLInputElement;
@@ -18,6 +18,8 @@ let deck: Card[] = [];
 function Initialize() {
     console.log("hi");
     mainDiv.innerText += "hi hi";
+    LoadDatabase();
+    //CleanDatabase();
     RunTests();
     CreateBaseDeck();
     GetOpeningHandStats();
@@ -36,8 +38,10 @@ function GetOpeningHandStats() {
     let landNumbers = Array(8).fill(0);
     console.log("Starting simulations");
     for (let i = 0; i < num; i++) {
-        if (num > 0 && num%1000 == 0) {
-            console.log(num + " simulations finished");
+        if (i > 0 && i%1000 == 0) {
+            let message = i + " simulations finished";
+            mainDiv.innerText = message;
+            console.log(message);
         }
         state.ShuffleHandToDeck();
         state.DrawCard(7);
@@ -50,6 +54,7 @@ function GetOpeningHandStats() {
         }
         landNumbers[landNumber]++;
     }
+    state.ShuffleHandToDeck();
     let result = "";
     for (let i = 0; i < landNumbers.length; i++) {
         result += "Chance to start with " + i + " lands: " + (100*landNumbers[i]/num).toFixed(2) + "%\n";
