@@ -6,7 +6,7 @@ import { RunTests } from "./tests";
 import { Mana } from "./mana";
 import { Land } from "./land";
 import { CleanDatabase, GetDeckPrettyString, LoadDatabase, LoadFile, ParseManacostScryfall, ReadDeckData, ReadDeckDekData } from "./deckImport";
-import { CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard, CheckRuleHasCastableCards, CheckRuleHasCardsOfType, CastabilityRequirement } from "./rules";
+import { CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard, CheckRuleHasCastableCards, CheckRuleHasCardsOfType, CastabilityRequirement, CheckRuleLandCount, Rule, ManaProductionRule, AnyCardRule, LandsNumberRule, CastableCardsRule, AllCardRule, RequiredTypesRule } from "./rules";
 
 const resultsDiv = document.getElementById('results') as HTMLDivElement;
 const deckInput = document.getElementById('deckInput') as HTMLTextAreaElement;
@@ -26,12 +26,19 @@ const importDeckButton = document.getElementById('importDeck') as HTMLButtonElem
 const deckLoadButton = document.getElementById('deckLoadButton') as HTMLButtonElement;
 
 let deck: Card[] = [];
+let currentRules: Rule[] = [];
 
 function Initialize() {
     resultsDiv.innerText = "Loading";
     //CleanDatabase();
     LoadDatabase();
     RunTests();
+    currentRules.push(new LandsNumberRule(null));
+    currentRules.push(new ManaProductionRule(null));
+    currentRules.push(new CastableCardsRule(null));
+    currentRules.push(new RequiredTypesRule(null));
+    currentRules.push(new AnyCardRule(null));
+    currentRules.push(new AllCardRule(null));
     if (deckInput.value.length > 5) {
         ImportDeck();
     }
@@ -84,7 +91,7 @@ function GetOpeningHandStats(withMulligans: boolean = false) {
         landNumbers[landNumber]++;
         while (state.hand.length > 0) {
             let matchesRules = true;
-            matchesRules = matchesRules && landNumber >= minLands && landNumber <= maxLands;
+            matchesRules = matchesRules && CheckRuleLandCount(state, minLands, maxLands);
             matchesRules = matchesRules && CheckRuleManaProduction(state, wantedAvailableManaInput.value);
             matchesRules = matchesRules && CheckRuleHasCastableCards(state, wantedCastableCards);
             matchesRules = matchesRules && CheckRuleHasCardsOfType(state, wantedTypesInput.value, castabilityType);

@@ -3,7 +3,7 @@ import { Card } from "./card";
 import { CreateCardFromDatabase } from "./deckImport";
 import { Land } from "./land";
 import { Mana, RemoveManaForCast } from "./mana";
-import { CastabilityRequirement, CheckRuleHasCardsOfType, CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard } from "./rules";
+import { CastabilityRequirement, CheckRuleHasCardsOfType, CheckRuleLandCount, CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard } from "./rules";
 
 export function RunTests() {
     if (window.location.href.indexOf("github.io") == -1) {
@@ -79,6 +79,9 @@ function RunRulesManaTests() {
     console.assert(CheckRuleManaProduction(state, "U, U"));
     console.assert(CheckRuleManaProduction(state, "2"));
     console.assert(CheckRuleManaProduction(state, "W/U,U/B"));
+    console.assert(!CheckRuleLandCount(state, 3, 5));
+    console.assert(CheckRuleLandCount(state, 1, 3));
+    console.assert(CheckRuleLandCount(state, 2, 2));
     state.hand = [new Land("Caves of Koilos", Mana.White|Mana.Black), new Land("Plains", Mana.White)];
     console.assert(!CheckRuleManaProduction(state, "U"));
     console.assert(!CheckRuleManaProduction(state, "B,B"));
@@ -88,6 +91,7 @@ function RunRulesManaTests() {
     console.assert(CheckRuleManaProduction(state, "B,W"));
     console.assert(CheckRuleManaProduction(state, "W,W"));
     console.assert(CheckRuleManaProduction(state, "1,B"));
+    console.assert(CheckRuleLandCount(state, 2, 2));
 }
 
 function RunRulesCardTests() {

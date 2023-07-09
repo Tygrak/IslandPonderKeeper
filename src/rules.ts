@@ -1,4 +1,5 @@
 import { GameState } from "./GameState";
+import { CastabilityRequirementElement } from "./castabilityRadioElement";
 import { ParseManacostScryfall } from "./deckImport";
 import { Land } from "./land";
 import { IsCastable, Mana, RemoveManaForCast } from "./mana";
@@ -11,7 +12,206 @@ export enum CastabilityRequirement {
     CastableWithRitualsT1
 }
 
-//todo: keep rules through custom condition trees
+export enum RuleType {
+    ManaProduction,
+    AnyCardFrom,
+    AllCardsFrom,
+    CardOfType,
+    LandCount,
+    Or,
+    And
+}
+
+let globalNameIdCounter = 1;
+
+export class Rule {
+    div: HTMLDivElement;
+    subRules: Rule[] = [];
+    parent: Rule | null = null;
+
+    constructor (parent: Rule | null) {
+        this.parent = parent;
+        this.div = this.CreateDivElement();
+    }
+
+    private CreateDivElement() {
+        let parentDiv: HTMLDivElement = document.getElementById("rules") as HTMLDivElement;
+        if (this.parent != null) {
+            parentDiv = this.parent.div!;
+        }
+        this.div = document.createElement('div');
+        this.div.classList.add("rule");
+        parentDiv.appendChild(this.div);
+        return this.div;
+    }
+
+    public Evaluate(gameState: GameState) {
+        return true;
+    }
+}
+
+export class ManaProductionRule extends Rule {
+    label: HTMLLabelElement;
+    input: HTMLInputElement;
+
+    constructor (parent: Rule | null) {
+        super(parent);
+        this.input = document.createElement('input');
+        this.input.type = "text";
+        this.input.name = GetUniqueInputName();
+        this.label = document.createElement('label');
+        this.label.innerText = "Can Produce Mana (symbols WUBRG, split with /[,;|]/)";
+        this.label.htmlFor = this.input.name;
+        this.div.appendChild(this.input);
+        this.div.appendChild(this.label);
+    }
+
+    public Evaluate(gameState: GameState) {
+        return CheckRuleManaProduction(gameState, this.input.value);
+    }
+}
+
+export class AnyCardRule extends Rule {
+    label: HTMLLabelElement;
+    input: HTMLInputElement;
+    castabilityElement: CastabilityRequirementElement;
+
+    constructor (parent: Rule | null) {
+        super(parent);
+        this.castabilityElement = new CastabilityRequirementElement(this.div);
+        this.input = document.createElement('input');
+        this.input.type = "text";
+        this.input.name = GetUniqueInputName();
+        this.label = document.createElement('label');
+        this.label.innerText = "Required Cards for Keep (any, split with |)";
+        this.label.htmlFor = this.input.name;
+        this.div.appendChild(this.input);
+        this.div.appendChild(this.label);
+    }
+
+    public Evaluate(gameState: GameState) {
+        return CheckRuleMatchesAnyCard(gameState, this.input.value, this.castabilityElement.GetValue());
+    }
+}
+
+export class AllCardRule extends Rule {
+    label: HTMLLabelElement;
+    input: HTMLInputElement;
+    castabilityElement: CastabilityRequirementElement;
+
+    constructor (parent: Rule | null) {
+        super(parent);
+        this.castabilityElement = new CastabilityRequirementElement(this.div);
+        this.input = document.createElement('input');
+        this.input.type = "text";
+        this.input.name = GetUniqueInputName();
+        this.label = document.createElement('label');
+        this.label.innerText = "Required Cards for Keep (all, split with |)";
+        this.label.htmlFor = this.input.name;
+        this.div.appendChild(this.input);
+        this.div.appendChild(this.label);
+    }
+
+    public Evaluate(gameState: GameState) {
+        return CheckRuleMatchesAllCards(gameState, this.input.value, this.castabilityElement.GetValue());
+    }
+}
+
+export class RequiredTypesRule extends Rule {
+    label: HTMLLabelElement;
+    input: HTMLInputElement;
+    castabilityElement: CastabilityRequirementElement;
+
+    constructor (parent: Rule | null) {
+        super(parent);
+        this.castabilityElement = new CastabilityRequirementElement(this.div);
+        this.input = document.createElement('input');
+        this.input.type = "text";
+        this.input.name = GetUniqueInputName();
+        this.label = document.createElement('label');
+        this.label.innerText = "Required Card Types in Hand (split with /[,;|]/)";
+        this.label.htmlFor = this.input.name;
+        this.div.appendChild(this.input);
+        this.div.appendChild(this.label);
+    }
+
+    public Evaluate(gameState: GameState) {
+        return CheckRuleHasCardsOfType(gameState, this.input.value, this.castabilityElement.GetValue());
+    }
+}
+
+export class CastableCardsRule extends Rule {
+    label: HTMLLabelElement;
+    input: HTMLInputElement;
+
+    constructor (parent: Rule | null) {
+        super(parent);
+        this.input = document.createElement('input');
+        this.input.type = "number";
+        this.input.value = "1";
+        this.input.min = "0";
+        this.input.max = "7";
+        this.input.name = GetUniqueInputName();
+        this.label = document.createElement('label');
+        this.label.innerText = "Number of Wanted Castable Cards";
+        this.label.htmlFor = this.input.name;
+        this.div.appendChild(this.input);
+        this.div.appendChild(this.label);
+    }
+
+    public Evaluate(gameState: GameState) {
+        return CheckRuleHasCastableCards(gameState, parseInt(this.input.value));
+    }
+}
+
+export class LandsNumberRule extends Rule {
+    labelMin: HTMLLabelElement;
+    labelMax: HTMLLabelElement;
+    inputMin: HTMLInputElement;
+    inputMax: HTMLInputElement;
+
+    constructor (parent: Rule | null) {
+        super(parent);
+        this.inputMin = document.createElement('input');
+        this.inputMin.type = "number";
+        this.inputMin.value = "1";
+        this.inputMin.min = "0";
+        this.inputMin.max = "7";
+        this.inputMin.name = GetUniqueInputName();
+        this.labelMin = document.createElement('label');
+        this.labelMin.innerText = "Minimum Lands for Keep";
+        this.labelMin.htmlFor = this.inputMin.name;
+        this.div.appendChild(this.inputMin);
+        this.div.appendChild(this.labelMin);
+        this.inputMax = document.createElement('input');
+        this.inputMax.type = "number";
+        this.inputMax.value = "5";
+        this.inputMax.min = "0";
+        this.inputMax.max = "7";
+        this.inputMax.name = GetUniqueInputName();
+        this.labelMax = document.createElement('label');
+        this.labelMax.innerText = "Maximum Lands for Keep";
+        this.labelMax.htmlFor = this.inputMax.name;
+        this.div.appendChild(this.inputMax);
+        this.div.appendChild(this.labelMax);
+    }
+
+    public Evaluate(gameState: GameState) {
+        return CheckRuleLandCount(gameState, parseInt(this.inputMin.value), parseInt(this.inputMax.value));
+    }
+}
+
+function GetUniqueInputName() {
+    let name = "ruleinput-"+globalNameIdCounter;
+    globalNameIdCounter++;
+    return name;
+}
+
+export function CheckRuleLandCount(gameState: GameState, minLands: number, maxLands: number) {
+    let lands = gameState.CountLandsInHand();
+    return lands >= minLands && lands <= maxLands;
+}
+
 export function CheckRuleManaProduction(gameState: GameState, wantedAvailableMana: string) {
     wantedAvailableMana = wantedAvailableMana.trim();
     if (wantedAvailableMana == "") {
