@@ -6,7 +6,7 @@ import { RunTests } from "./tests";
 import { Mana } from "./mana";
 import { Land } from "./land";
 import { CleanDatabase, GetDeckPrettyString, LoadDatabase, LoadFile, ParseManacostScryfall, ReadDeckData, ReadDeckDekData } from "./deckImport";
-import { IsCastable, CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard } from "./rules";
+import { IsCastable, CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard, CheckRuleHasCastableCards, CheckRuleHasCardsOfType } from "./rules";
 
 const resultsDiv = document.getElementById('results') as HTMLDivElement;
 const deckInput = document.getElementById('deckInput') as HTMLTextAreaElement;
@@ -18,6 +18,8 @@ const maxWantedLandsInput = document.getElementById('maxWantedLands') as HTMLInp
 const requiredCardsAnyInput = document.getElementById('requiredCardsAny') as HTMLInputElement;
 const requiredCardsAllInput = document.getElementById('requiredCardsAll') as HTMLInputElement;
 const wantedAvailableManaInput = document.getElementById('wantedAvailableMana') as HTMLInputElement;
+const wantedCastableCardsInput = document.getElementById('wantedCastableCards') as HTMLInputElement;
+const wantedTypesInput = document.getElementById('wantedTypes') as HTMLInputElement;
 
 const runSimulationButton = document.getElementById('runSimulation') as HTMLButtonElement;
 const importDeckButton = document.getElementById('importDeck') as HTMLButtonElement;
@@ -30,6 +32,9 @@ function Initialize() {
     //CleanDatabase();
     LoadDatabase();
     RunTests();
+    if (deckInput.value.length > 5) {
+        ImportDeck();
+    }
     resultsDiv.innerText = "Ready -- Import a deck and click \"Run Simulation\" to begin";
     //CreateBaseDeck();
     //GetOpeningHandStats();
@@ -49,10 +54,14 @@ function GetOpeningHandStats(withMulligans: boolean = false) {
     let num = parseInt(simulatedGamesInput.value);
     let minLands = parseInt(minWantedLandsInput.value);
     let maxLands = parseInt(maxWantedLandsInput.value);
+    let wantedCastableCards = parseInt(wantedCastableCardsInput.value);
 
     let state = GameState.CreateWithDeck(deck);
+
     let landNumbers = Array(8).fill(0);
     let matchesKeepRules = Array(8).fill(0);
+    let exampleHands: string[] = [];
+
     console.log("Starting simulations");
     for (let i = 0; i <= num; i++) {
         if (i > 0 && i%5000 == 0) {
@@ -70,12 +79,16 @@ function GetOpeningHandStats(withMulligans: boolean = false) {
             matchesRules = matchesRules && CheckRuleMatchesAllCards(state, requiredCardsAllInput.value);
             matchesRules = matchesRules && CheckRuleMatchesAnyCard(state, requiredCardsAnyInput.value);
             matchesRules = matchesRules && CheckRuleManaProduction(state, wantedAvailableManaInput.value);
+            matchesRules = matchesRules && CheckRuleHasCastableCards(state, wantedCastableCards);
+            matchesRules = matchesRules && CheckRuleHasCardsOfType(state, wantedTypesInput.value);
             if (matchesRules) {
-                if (landNumber <= 1) {
-                    console.log(state.hand);
+                if (exampleHands.length < 5) {
+                    exampleHands.push("Keep: "+state.hand.map(c => c.name).join(", "));
                 }
                 matchesKeepRules[state.hand.length]++;
                 break;
+            } else if (exampleHands.length < 5) {
+                exampleHands.push("Mull: "+state.hand.map(c => c.name).join(", "));
             }
             //todo: london mulligan
             let cards = state.hand.length-1;
@@ -102,18 +115,22 @@ function GetOpeningHandStats(withMulligans: boolean = false) {
     }
     averageKeep = averageKeep/num;
     result += "Average keep hand size: " + averageKeep.toFixed(2) + "\n";
+    result += "\n\nExample hands:\n" + exampleHands.join("\n") + "\n";
     resultsDiv.innerText = result;
     console.log(result);
 }
 
+function ImportDeck() {
+    deck = ReadDeckData(deckInput.value);
+    console.log("Imported deck data");
+    deckInput.value = GetDeckPrettyString(deck);
+}
 
 Initialize();
 
 runSimulationButton.onclick = (ev) => {GetOpeningHandStats();};
 importDeckButton.onclick = (ev) => {
-    deck = ReadDeckData(deckInput.value);
-    console.log("Imported deck data");
-    deckInput.value = GetDeckPrettyString(deck);
+    ImportDeck();
 };
 deckLoadButton.onclick = (ev) => {
     if (deckLoadFileInput.files != null && deckLoadFileInput.files.length > 0) {
@@ -122,7 +139,7 @@ deckLoadButton.onclick = (ev) => {
             if (deck.length == 0) {
                 deck = ReadDeckData(s);
             }
-            console.log("Imported deck data");
+            console.log("Imported deck data from file " + deckLoadFileInput.files![0].name);
             deckInput.value = GetDeckPrettyString(deck);
         });
     }

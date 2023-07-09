@@ -2,6 +2,7 @@ import { Card } from "./card";
 import { Land } from "./land";
 import { Mana } from "./mana";
 import { Permanent } from "./permanent";
+import { Ritual } from "./ritual";
 
 export class GameState {
     turnCount: number = 0;
@@ -94,8 +95,27 @@ export class GameState {
         let mana: Mana[] = [];
         for (let i = 0; i < this.hand.length; i++) {
             const card = this.hand[i];
+            if (card instanceof Land) {
+                mana.push(card.produces);
+            }
+        }
+        return mana;
+    }
+
+    public CastableTurn1() {
+        let mana: Mana[] = [];
+        for (let i = 0; i < this.hand.length; i++) {
+            const card = this.hand[i];
             if (card instanceof Land && !(card.enteredThisTurn && card.entersTapped)) {
                 mana.push(card.produces);
+            }
+        }
+        let rituals = this.hand.filter(c => c instanceof Ritual);
+        rituals = rituals.sort((a, b) => a.manaCost.length-b.manaCost.length);
+        for (let i = 0; i < rituals.length; i++) {
+            const card = rituals[i];
+            if (card instanceof Ritual && card.IsCastable(mana)) {
+                mana.push(...card.produces);
             }
         }
         return mana;

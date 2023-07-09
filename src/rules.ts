@@ -1,5 +1,6 @@
 import { GameState } from "./GameState";
 import { ParseManacostScryfall } from "./deckImport";
+import { Land } from "./land";
 import { Mana } from "./mana";
 
 export function IsCastable(availableMana: Mana[], manaCost: Mana[]) {
@@ -99,3 +100,36 @@ export function CheckRuleMatchesAllCards(gameState: GameState, requiredCardsInpu
     }
     return true;
 }
+
+export function CheckRuleHasCardsOfType(gameState: GameState, requiredTypesInput: string) {
+    let requiredTypes = requiredTypesInput.split(/[,;|]/);
+    requiredTypes = requiredTypes.map(s => s.trim());
+    requiredTypes = requiredTypes.filter(s => s != "");
+    if (requiredTypes.length == 0) {
+        return true;
+    }
+    let handCopy = [...gameState.hand];
+    for (let i = requiredTypes.length-1; i >= 0; i--) {
+        let index = handCopy.findIndex(c => c.IsType(requiredTypes[i]));
+        if (index == -1) {
+            return false;
+        }
+        handCopy.splice(index, 1);
+    }
+    return true;
+}
+
+export function CheckRuleHasCastableCards(gameState: GameState, amount: number) {
+    if (amount == 0) {
+        return true;
+    }
+    let availableMana = gameState.AvailableManaInHand();
+    let castable = 0;
+    for (let i = 0; i < gameState.hand.length; i++) {
+        if (!(gameState.hand[i] instanceof Land) && gameState.hand[i].IsCastable(availableMana)) {
+            castable++;
+        }
+    }
+    return castable >= amount;
+}
+
