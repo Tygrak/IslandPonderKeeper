@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<head>
+   <meta charset="utf-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <title>Island Ponder Keeper - Pd Collection Checker</title>
+   <meta name="description" content="">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+   <div class="grid">
+      <div class="item1">
+         <div>
+            <button id="deckLoadButton">Load Collection from File</button>
+            <input type="file" id="deckLoadFileInput" name="deckLoadFileInput" accept=".txt,.dek">
+         </div>
+         <div class="errorOutput" id="errorOutput">
+            
+         </div>
+      </div>
+      <div class="item2">
+         <div>
+            <button id="exportResultToFileButton">Export Result to MTGO Collection File</button>
+         </div>
+         <div>
+            <button id="exportResultToTextFileButton">Export Result to Text File</button>
+         </div>
+         <textarea class="results" id="results">
+            Output
+         </textarea>
+         <div class="resultsText" id="resultsText">
+            
+         </div>
+      </div>
+   </div>
+
+   <script src="pdCollection.bundle.js"></script>
+   <script>
+   </script>
+</body>
+</html>

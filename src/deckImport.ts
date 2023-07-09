@@ -44,7 +44,7 @@ export function LoadFile(dataFile: File, callback: Function) {
     reader.readAsText(dataFile, "UTF-8");
 }
 
-function SaveFile(filename: string, data: string) {
+export function SaveFile(filename: string, data: string) {
     const blob = new Blob([data], {type: 'text/csv'});
     const elem = window.document.createElement('a');
     elem.href = window.URL.createObjectURL(blob);

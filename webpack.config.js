@@ -3,7 +3,8 @@ const bundleOutputDir = "./public";
 
 module.exports = {
     entry: {
-        main: "./src/main"  
+        main: "./src/main",
+        pdCollection: "./src/collectionChecker"
     },
     output: {
         filename: "[name].bundle.js",
@@ -31,6 +32,10 @@ module.exports = {
             },
             {
                 test: /\.json$/i,
+                type: 'asset/source',
+            },
+            {
+                test: /\.txt$/i,
                 type: 'asset/source',
             }
         ]
