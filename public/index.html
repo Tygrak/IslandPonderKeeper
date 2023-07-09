@@ -46,7 +46,7 @@
       <div class="item2">
          <div id="settings">
             <div class="setting">
-               <label><input id="simulatedGames" type="number" min="10" max="100000" value="10000">Simulated Games</label>
+               <label><input id="simulatedGames" type="number" min="10" max="100000" value="10000">Simulated Hands</label>
             </div>
             <div class="setting">
                <label><input id="minWantedLands" type="number" min="0" max="7" value="1">Minimum Lands for Keep</label>
@@ -59,6 +59,18 @@
             </div>
             <div class="setting">
                <label><input id="wantedCastableCards" type="number" min="0" max="7" value="1">Number of Wanted Castable Cards</label>
+            </div>
+            <div class="setting">
+               Castability requirement for following rules:
+               <br>
+               <label><input type="radio" id="castabilityTypeNone" name="castabilityType" value="None" checked>None</label>
+               <br>
+               <label><input type="radio" id="castabilityTypeLands" name="castabilityType" value="WithLands">With Lands</label>
+               <br>
+               <label><input type="radio" id="castabilityTypeRituals" name="castabilityType" value="WithRituals">With Rituals</label>
+               <br>
+               <label><input type="radio" id="castabilityTypeRitualsT1" name="castabilityType" value="WithRitualsT1">With Rituals T1</label>
+               <br>
             </div>
             <div class="setting">
                <label><input id="wantedTypes" type="text" value="" placeholder="Creature, Aura">Required Card Types in Hand (split with /[,;|]/)</label>

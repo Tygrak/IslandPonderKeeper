@@ -1,5 +1,4 @@
-import { Mana } from "./mana";
-import { IsCastable } from "./rules";
+import { IsCastable, Mana } from "./mana";
 
 export class Card {
     name: string;

@@ -2,17 +2,21 @@ import { GameState } from "./GameState";
 import { Card } from "./card";
 import { CreateCardFromDatabase } from "./deckImport";
 import { Land } from "./land";
-import { Mana } from "./mana";
-import { CheckRuleManaProduction } from "./rules";
+import { Mana, RemoveManaForCast } from "./mana";
+import { CastabilityRequirement, CheckRuleHasCardsOfType, CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard } from "./rules";
 
 export function RunTests() {
-    RunManacostTests();
-    RunDatabaseTestsLands();
-    RunRulesTests();
-    console.log("tests finished successfully!!!");
+    if (window.location.href.indexOf("github.io") == -1) {
+        RunManacostTests();
+        RunDatabaseTestsLands();
+        RunRulesCardTests();
+        RunRulesManaTests();
+        console.log("tests finished successfully!!!");
+    }
 }
 
 function RunManacostTests() {
+    console.log("Running manacost tests");
     let mana = [Mana.White, Mana.Green, Mana.Red, Mana.Red];
     let card1 = new Card("1", [Mana.White]);
     console.assert(card1.IsCastable(mana));
@@ -32,9 +36,18 @@ function RunManacostTests() {
     console.assert(!cardUncastable2.IsCastable(mana));
     let cardUncastable3 = new Card("uncastable3", [Mana.Colorless, Mana.Colorless, Mana.Colorless, Mana.Colorless, Mana.Colorless]);
     console.assert(!cardUncastable3.IsCastable(mana));
+    let availableMana = RemoveManaForCast([Mana.White, Mana.Green, Mana.Red, Mana.Red], [Mana.Red]);
+    console.assert(availableMana.length == 3);
+    console.assert(availableMana.indexOf(Mana.White) != -1 && availableMana.indexOf(Mana.Green) != -1 && availableMana.indexOf(Mana.Red) != -1);
+    availableMana = RemoveManaForCast([Mana.White, Mana.Green, Mana.Red, Mana.Red], [Mana.Red, Mana.Red]);
+    console.assert(availableMana.length == 2);
+    console.assert(availableMana.indexOf(Mana.White) != -1 && availableMana.indexOf(Mana.Green) != -1 && availableMana.indexOf(Mana.Red) == -1);
+    availableMana = RemoveManaForCast([Mana.White, Mana.Green, Mana.Red, Mana.Red], [Mana.Colorless, Mana.Red, Mana.Red, Mana.Colorless]);
+    console.assert(availableMana.length == 0);
 }
 
 function RunDatabaseTestsLands() {
+    console.log("Running database tests");
     let plains = CreateCardFromDatabase("Plains");
     console.assert(plains instanceof Land && plains.produces == Mana.White && plains.IsType("Basic"));
     let island = CreateCardFromDatabase("Island");
@@ -53,7 +66,8 @@ function RunDatabaseTestsLands() {
     console.assert(tendoIce instanceof Land && tendoIce.produces == (Mana.White|Mana.Blue|Mana.Black|Mana.Red|Mana.Green));
 }
 
-function RunRulesTests() {
+function RunRulesManaTests() {
+    console.log("Running rules mana tests");
     let state = new GameState();
     state.hand = [new Land("Island", Mana.Blue), new Land("Island", Mana.Blue)];
     console.assert(!CheckRuleManaProduction(state, "W") && !CheckRuleManaProduction(state, "B"));
@@ -74,4 +88,60 @@ function RunRulesTests() {
     console.assert(CheckRuleManaProduction(state, "B,W"));
     console.assert(CheckRuleManaProduction(state, "W,W"));
     console.assert(CheckRuleManaProduction(state, "1,B"));
+}
+
+function RunRulesCardTests() {
+    console.log("Running rules card tests");
+    let state = new GameState();
+    state.hand = [CreateCardFromDatabase("Empty the Warrens"), CreateCardFromDatabase("Seething Song"),  CreateCardFromDatabase("Irencrag Feat"), 
+                  CreateCardFromDatabase("Desperate Ritual"), CreateCardFromDatabase("Mountain"), CreateCardFromDatabase("Mountain"), 
+                  CreateCardFromDatabase("Apex of Power")];
+    console.assert(!CheckRuleHasCardsOfType(state, "Creature", CastabilityRequirement.None));
+    console.assert(CheckRuleHasCardsOfType(state, "Instant", CastabilityRequirement.None));
+    console.assert(CheckRuleHasCardsOfType(state, "Instant, Sorcery", CastabilityRequirement.None));
+
+    console.assert(!CheckRuleMatchesAllCards(state, "Dragonstorm", CastabilityRequirement.None));
+    console.assert(!CheckRuleMatchesAllCards(state, "Empty the Warrens|Dragonstorm", CastabilityRequirement.None));
+    console.assert(CheckRuleMatchesAllCards(state, "Empty the Warrens", CastabilityRequirement.None));
+    console.assert(CheckRuleMatchesAllCards(state, "Irencrag Feat|Empty the Warrens", CastabilityRequirement.None));
+
+    console.assert(!CheckRuleMatchesAnyCard(state, "Dragonstorm", CastabilityRequirement.None));
+    console.assert(!CheckRuleMatchesAnyCard(state, "Dragonstorm|Pyretic Ritual", CastabilityRequirement.None));
+    console.assert(CheckRuleMatchesAnyCard(state, "Empty the Warrens", CastabilityRequirement.None));
+    console.assert(CheckRuleMatchesAnyCard(state, "Irencrag Feat|Empty the Warrens", CastabilityRequirement.None));
+    console.assert(CheckRuleMatchesAnyCard(state, "Empty the Warrens|Dragonstorm", CastabilityRequirement.None));
+    
+    console.assert(!CheckRuleMatchesAllCards(state, "Empty the Warrens", CastabilityRequirement.CastableWithLands));
+    console.assert(!CheckRuleMatchesAnyCard(state, "Empty the Warrens", CastabilityRequirement.CastableWithLands));
+    console.assert(CheckRuleMatchesAllCards(state, "Desperate Ritual", CastabilityRequirement.CastableWithLands));
+    console.assert(CheckRuleMatchesAnyCard(state, "Desperate Ritual", CastabilityRequirement.CastableWithLands));
+    
+    console.assert(!CheckRuleMatchesAllCards(state, "Apex of Power", CastabilityRequirement.CastableWithRituals));
+    console.assert(!CheckRuleMatchesAnyCard(state, "Apex of Power", CastabilityRequirement.CastableWithRituals));
+    console.assert(CheckRuleMatchesAllCards(state, "Empty the Warrens", CastabilityRequirement.CastableWithRituals));
+    console.assert(CheckRuleMatchesAnyCard(state, "Empty the Warrens", CastabilityRequirement.CastableWithRituals));
+
+    state.hand = [CreateCardFromDatabase("Simian Spirit Guide"), CreateCardFromDatabase("Mountain"),  CreateCardFromDatabase("Swamp"), 
+                  CreateCardFromDatabase("Dark Ritual"), CreateCardFromDatabase("Goblin Charbelcher"), CreateCardFromDatabase("Pyretic Ritual"), 
+                  CreateCardFromDatabase("Inferno Titan")];
+    console.assert(!CheckRuleMatchesAllCards(state, "Inferno Titan", CastabilityRequirement.CastableWithRitualsT1));
+    console.assert(CheckRuleMatchesAllCards(state, "Pyretic Ritual", CastabilityRequirement.CastableWithRitualsT1));
+    console.assert(CheckRuleMatchesAllCards(state, "Goblin Charbelcher", CastabilityRequirement.CastableWithRitualsT1));
+    console.assert(CheckRuleMatchesAnyCard(state, "Goblin Charbelcher", CastabilityRequirement.CastableWithRitualsT1));
+
+    state.hand = [CreateCardFromDatabase("Simian Spirit Guide"), CreateCardFromDatabase("Dark Ritual"),  CreateCardFromDatabase("Cabal Ritual"), 
+                  CreateCardFromDatabase("Balustrade Spy"), CreateCardFromDatabase("Undercity Informer"), CreateCardFromDatabase("Strike It Rich"), 
+                  CreateCardFromDatabase("Liliana Vess")];
+    console.assert(!CheckRuleMatchesAllCards(state, "Liliana Vess", CastabilityRequirement.CastableWithRituals));
+    console.assert(CheckRuleMatchesAllCards(state, "Undercity Informer", CastabilityRequirement.CastableWithRituals));
+    console.assert(CheckRuleMatchesAllCards(state, "Balustrade Spy", CastabilityRequirement.CastableWithRituals));
+    console.assert(!CheckRuleMatchesAnyCard(state, "Liliana Vess", CastabilityRequirement.CastableWithRituals));
+    console.assert(CheckRuleMatchesAnyCard(state, "Undercity Informer", CastabilityRequirement.CastableWithRituals));
+    console.assert(CheckRuleMatchesAnyCard(state, "Balustrade Spy", CastabilityRequirement.CastableWithRituals));
+    console.assert(!CheckRuleMatchesAllCards(state, "Liliana Vess", CastabilityRequirement.CastableWithRitualsT1));
+    console.assert(CheckRuleMatchesAllCards(state, "Undercity Informer", CastabilityRequirement.CastableWithRitualsT1));
+    console.assert(CheckRuleMatchesAllCards(state, "Balustrade Spy", CastabilityRequirement.CastableWithRitualsT1));
+    console.assert(!CheckRuleMatchesAnyCard(state, "Liliana Vess", CastabilityRequirement.CastableWithRitualsT1));
+    console.assert(CheckRuleMatchesAnyCard(state, "Undercity Informer", CastabilityRequirement.CastableWithRitualsT1));
+    console.assert(CheckRuleMatchesAnyCard(state, "Balustrade Spy", CastabilityRequirement.CastableWithRitualsT1));
 }

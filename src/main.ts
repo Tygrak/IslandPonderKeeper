@@ -6,7 +6,7 @@ import { RunTests } from "./tests";
 import { Mana } from "./mana";
 import { Land } from "./land";
 import { CleanDatabase, GetDeckPrettyString, LoadDatabase, LoadFile, ParseManacostScryfall, ReadDeckData, ReadDeckDekData } from "./deckImport";
-import { IsCastable, CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard, CheckRuleHasCastableCards, CheckRuleHasCardsOfType } from "./rules";
+import { CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard, CheckRuleHasCastableCards, CheckRuleHasCardsOfType, CastabilityRequirement } from "./rules";
 
 const resultsDiv = document.getElementById('results') as HTMLDivElement;
 const deckInput = document.getElementById('deckInput') as HTMLTextAreaElement;
@@ -55,6 +55,15 @@ function GetOpeningHandStats(withMulligans: boolean = false) {
     let minLands = parseInt(minWantedLandsInput.value);
     let maxLands = parseInt(maxWantedLandsInput.value);
     let wantedCastableCards = parseInt(wantedCastableCardsInput.value);
+    let castabilityType = CastabilityRequirement.None;
+    let castabilityTypeInput = document.querySelector('input[name="castabilityType"]:checked');
+    if (castabilityTypeInput != null && castabilityTypeInput instanceof HTMLInputElement && castabilityTypeInput.value == "WithLands") {
+        castabilityType = CastabilityRequirement.CastableWithLands;
+    } else if (castabilityTypeInput != null && castabilityTypeInput instanceof HTMLInputElement && castabilityTypeInput.value == "WithRituals") {
+        castabilityType = CastabilityRequirement.CastableWithRituals;
+    } else if (castabilityTypeInput != null && castabilityTypeInput instanceof HTMLInputElement && castabilityTypeInput.value == "WithRitualsT1") {
+        castabilityType = CastabilityRequirement.CastableWithRitualsT1;
+    }
 
     let state = GameState.CreateWithDeck(deck);
 
@@ -76,18 +85,18 @@ function GetOpeningHandStats(withMulligans: boolean = false) {
         while (state.hand.length > 0) {
             let matchesRules = true;
             matchesRules = matchesRules && landNumber >= minLands && landNumber <= maxLands;
-            matchesRules = matchesRules && CheckRuleMatchesAllCards(state, requiredCardsAllInput.value);
-            matchesRules = matchesRules && CheckRuleMatchesAnyCard(state, requiredCardsAnyInput.value);
             matchesRules = matchesRules && CheckRuleManaProduction(state, wantedAvailableManaInput.value);
             matchesRules = matchesRules && CheckRuleHasCastableCards(state, wantedCastableCards);
-            matchesRules = matchesRules && CheckRuleHasCardsOfType(state, wantedTypesInput.value);
+            matchesRules = matchesRules && CheckRuleHasCardsOfType(state, wantedTypesInput.value, castabilityType);
+            matchesRules = matchesRules && CheckRuleMatchesAnyCard(state, requiredCardsAnyInput.value, castabilityType);
+            matchesRules = matchesRules && CheckRuleMatchesAllCards(state, requiredCardsAllInput.value, castabilityType);
             if (matchesRules) {
                 if (exampleHands.length < 5) {
                     exampleHands.push("Keep: "+state.hand.map(c => c.name).join(", "));
                 }
                 matchesKeepRules[state.hand.length]++;
                 break;
-            } else if (exampleHands.length < 5) {
+            } else if (exampleHands.length < 5 && state.hand.length >= 6) {
                 exampleHands.push("Mull: "+state.hand.map(c => c.name).join(", "));
             }
             //todo: london mulligan
@@ -108,7 +117,8 @@ function GetOpeningHandStats(withMulligans: boolean = false) {
         sumKeep += matchesKeepRules[cards]/num;
         result += "Chance to match keep rules (" + cards + " card hand): " + (100*matchesKeepRules[cards]/num).toFixed(2) + "%\n";
     }
-    result += "Chance to NOT match keep rules: " + (100*(1-sumKeep)).toFixed(2) + "%\n";
+    result += "Total chance to match keep rules: " + (100*sumKeep).toFixed(2) + "%\n";
+    result += "Total chance to NOT match keep rules: " + (100*(1-sumKeep)).toFixed(2) + "%\n";
     let averageKeep = 0;
     for (let i = 1; i < matchesKeepRules.length; i++) {
         averageKeep += matchesKeepRules[i]*i;

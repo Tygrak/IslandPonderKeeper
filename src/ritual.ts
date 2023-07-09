@@ -1,6 +1,5 @@
 import { Card } from "./card";
 import { Mana } from "./mana";
-import { Permanent } from "./permanent";
 
 export class Ritual extends Card {
     produces: Mana[];

@@ -1,27 +1,14 @@
 import { GameState } from "./GameState";
 import { ParseManacostScryfall } from "./deckImport";
 import { Land } from "./land";
-import { Mana } from "./mana";
+import { IsCastable, Mana, RemoveManaForCast } from "./mana";
+import { Ritual } from "./ritual";
 
-export function IsCastable(availableMana: Mana[], manaCost: Mana[]) {
-    let available = [...availableMana];
-    let cost = [...manaCost];
-    for (let i = cost.length-1; i >= 0; i--) {
-        let id = available.findIndex(m => m == cost[i]);
-        if (id == -1) {
-            if (cost[i] == Mana.Colorless) {
-                id = 0;
-            } else {
-                id = available.findIndex(m => (m & cost[i]) > 0);
-            }
-        }
-        if (id == -1 || available.length == 0) {
-            return false;
-        }
-        cost.splice(i, 1);
-        available.splice(id, 1);
-    }
-    return true;
+export enum CastabilityRequirement {
+    None,
+    CastableWithLands,
+    CastableWithRituals,
+    CastableWithRitualsT1
 }
 
 //todo: keep rules through custom condition trees
@@ -68,22 +55,36 @@ export function CheckRuleManaProduction(gameState: GameState, wantedAvailableMan
     return IsCastable(availableMana, manaCost);
 }
 
-export function CheckRuleMatchesAnyCard(gameState: GameState, requiredCardsInput: string) {
+export function CheckRuleMatchesAnyCard(gameState: GameState, requiredCardsInput: string, castability: CastabilityRequirement = CastabilityRequirement.None) {
     let requiredCards = requiredCardsInput.split("|");
     requiredCards = requiredCards.map(s => s.trim());
     requiredCards = requiredCards.filter(s => s != "");
     if (requiredCards.length == 0) {
         return true;
     }
-    for (let i = 0; i < gameState.hand.length; i++) {
-        if (requiredCards.indexOf(gameState.hand[i].name) != -1) {
-            return true;
+    for (let i = 0; i < requiredCards.length; i++) {
+        if (castability == CastabilityRequirement.None && gameState.hand.findIndex(c => c.name == requiredCards[i]) != -1) {
+            if (gameState.hand.findIndex(c => c.name == requiredCards[i]) != -1) {
+                return true;
+            }
+        } else if (castability == CastabilityRequirement.CastableWithLands) {
+            if (gameState.hand.findIndex(c => c.name == requiredCards[i] && c.IsCastable(gameState.AvailableManaInHand())) != -1) {
+                return true;
+            }
+        } else if (castability == CastabilityRequirement.CastableWithRituals) {
+            if (gameState.hand.findIndex(c => c.name == requiredCards[i] && IsCastableWithRituals(gameState, c.manaCost)) != -1) {
+                return true;
+            }
+        } else if (castability == CastabilityRequirement.CastableWithRitualsT1) {
+            if (gameState.hand.findIndex(c => c.name == requiredCards[i] && IsCastableWithRitualsT1(gameState, c.manaCost)) != -1) {
+                return true;
+            }
         }
     }
     return false;
 }
 
-export function CheckRuleMatchesAllCards(gameState: GameState, requiredCardsInput: string) {
+export function CheckRuleMatchesAllCards(gameState: GameState, requiredCardsInput: string, castability: CastabilityRequirement = CastabilityRequirement.None) {
     let requiredCards = requiredCardsInput.split("|");
     requiredCards = requiredCards.map(s => s.trim());
     requiredCards = requiredCards.filter(s => s != "");
@@ -92,16 +93,37 @@ export function CheckRuleMatchesAllCards(gameState: GameState, requiredCardsInpu
     }
     let handCopy = [...gameState.hand];
     for (let i = requiredCards.length-1; i >= 0; i--) {
-        let index = handCopy.findIndex(c => c.name == requiredCards[i]);
-        if (index == -1) {
+        let cardsWithNameIndexes = handCopy.map((c, index) => c.name == requiredCards[i] ? index : -1).filter(i => i != -1);
+        if (cardsWithNameIndexes.length == 0) {
             return false;
         }
-        handCopy.splice(index, 1);
+        let found = -1;
+        if (castability == CastabilityRequirement.None) {
+            found = cardsWithNameIndexes[0];
+        } else {
+            for (let j = 0; j < cardsWithNameIndexes.length; j++) {
+                const index = cardsWithNameIndexes[j];
+                if (castability == CastabilityRequirement.CastableWithLands && handCopy[index].IsCastable(gameState.AvailableManaInHand())) {
+                    found = index;
+                    break;
+                } else if (castability == CastabilityRequirement.CastableWithRituals && IsCastableWithRituals(gameState, handCopy[index].manaCost)) {
+                    found = index;
+                    break;
+                } else if (castability == CastabilityRequirement.CastableWithRitualsT1 && IsCastableWithRitualsT1(gameState, handCopy[index].manaCost)) {
+                    found = index;
+                    break;
+                }
+            }
+        }
+        if (found == -1) {
+            return false;
+        }
+        handCopy.splice(found, 1);
     }
     return true;
 }
 
-export function CheckRuleHasCardsOfType(gameState: GameState, requiredTypesInput: string) {
+export function CheckRuleHasCardsOfType(gameState: GameState, requiredTypesInput: string, castability: CastabilityRequirement = CastabilityRequirement.None) {
     let requiredTypes = requiredTypesInput.split(/[,;|]/);
     requiredTypes = requiredTypes.map(s => s.trim());
     requiredTypes = requiredTypes.filter(s => s != "");
@@ -110,11 +132,32 @@ export function CheckRuleHasCardsOfType(gameState: GameState, requiredTypesInput
     }
     let handCopy = [...gameState.hand];
     for (let i = requiredTypes.length-1; i >= 0; i--) {
-        let index = handCopy.findIndex(c => c.IsType(requiredTypes[i]));
-        if (index == -1) {
+        let cardsOfTypeIndexes = handCopy.map((c, index) => c.IsType(requiredTypes[i]) ? index : -1).filter(i => i != -1);
+        if (cardsOfTypeIndexes.length == 0) {
             return false;
         }
-        handCopy.splice(index, 1);
+        let found = -1;
+        if (castability == CastabilityRequirement.None) {
+            found = cardsOfTypeIndexes[0];
+        } else {
+            for (let j = 0; j < cardsOfTypeIndexes.length; j++) {
+                const index = cardsOfTypeIndexes[j];
+                if (castability == CastabilityRequirement.CastableWithLands && handCopy[index].IsCastable(gameState.AvailableManaInHand())) {
+                    found = index;
+                    break;
+                } else if (castability == CastabilityRequirement.CastableWithRituals && IsCastableWithRituals(gameState, handCopy[index].manaCost)) {
+                    found = index;
+                    break;
+                } else if (castability == CastabilityRequirement.CastableWithRitualsT1 && IsCastableWithRitualsT1(gameState, handCopy[index].manaCost)) {
+                    found = index;
+                    break;
+                }
+            }
+        }
+        if (found == -1) {
+            return false;
+        }
+        handCopy.splice(found, 1);
     }
     return true;
 }
@@ -133,3 +176,50 @@ export function CheckRuleHasCastableCards(gameState: GameState, amount: number) 
     return castable >= amount;
 }
 
+export function IsCastableWithRituals(gameState: GameState, manaCost: Mana[]) {
+    let mana: Mana[] = [];
+    for (let i = 0; i < gameState.hand.length; i++) {
+        const card = gameState.hand[i];
+        if (card instanceof Land && !(card.enteredThisTurn && card.entersTapped)) {
+            mana.push(card.produces);
+        }
+    }
+    let rituals = gameState.hand.filter(c => c instanceof Ritual).map(c => c as Ritual);
+    rituals = rituals.sort((a, b) => a.manaCost.length-b.manaCost.length);
+    return IsCastableWithBaseManaAndRituals(manaCost, rituals, mana);
+}
+
+export function IsCastableWithRitualsT1(gameState: GameState, manaCost: Mana[]) {
+    let rituals = gameState.hand.filter(c => c instanceof Ritual).map(c => c as Ritual);
+    rituals = rituals.sort((a, b) => a.manaCost.length-b.manaCost.length);
+    for (let i = 0; i < gameState.hand.length; i++) {
+        const card = gameState.hand[i];
+        if (card instanceof Land && !card.entersTapped && IsCastableWithBaseManaAndRituals(manaCost, rituals, [card.produces])) {
+            return true;
+        }
+    }
+    if (IsCastableWithBaseManaAndRituals(manaCost, rituals, [])) {
+        return true;
+    }
+    return false;
+}
+
+function IsCastableWithBaseManaAndRituals(manaCost: Mana[], rituals: Ritual[], availableMana: Mana[]) {
+    if (IsCastable(availableMana, manaCost)) {
+        return true;
+    }
+    for (let i = 0; i < rituals.length; i++) {
+        const ritual = rituals[i];
+        if (ritual.IsCastable(availableMana)) {
+            let manaCopy = [...availableMana];
+            manaCopy = RemoveManaForCast(manaCopy, ritual.manaCost);
+            manaCopy.push(...ritual.produces);
+            let ritualsCopy = [...rituals];
+            ritualsCopy.splice(i, 1);
+            if (IsCastableWithBaseManaAndRituals(manaCost, ritualsCopy, manaCopy)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}

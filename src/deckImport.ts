@@ -1,6 +1,7 @@
 import { Card } from "./card";
 import { Land } from "./land";
 import { Mana } from "./mana";
+import { Ritual } from "./ritual";
 
 const cardDatabase = require("./data/database.json");
 let loaded = false;
@@ -150,6 +151,49 @@ function FindCardInDatabase(name: string) {
     return data;
 }
 
+function CreateKnownCard(name: string, cost: Mana[]) {
+    if (name == "Dark Ritual") {
+        return new Ritual(name, cost, [Mana.Black, Mana.Black, Mana.Black]);
+    } else if (name == "Cabal Ritual") {
+        return new Ritual(name, cost, [Mana.Black, Mana.Black, Mana.Black]);
+    } else if (name == "Pyretic Ritual") {
+        return new Ritual(name, cost, [Mana.Red, Mana.Red, Mana.Red]);
+    } else if (name == "Desperate Ritual") {
+        return new Ritual(name, cost, [Mana.Red, Mana.Red, Mana.Red]);
+    } else if (name == "Rite of Flame") {
+        return new Ritual(name, cost, [Mana.Red, Mana.Red]);
+    } else if (name == "Seething Song") {
+        return new Ritual(name, cost, [Mana.Red, Mana.Red, Mana.Red, Mana.Red, Mana.Red]);
+    } else if (name == "Irencrag Feat") {
+        return new Ritual(name, cost, [Mana.Red, Mana.Red, Mana.Red, Mana.Red, Mana.Red, Mana.Red, Mana.Red]);
+    } else if (name == "Channel the Suns") {
+        return new Ritual(name, cost, [Mana.White, Mana.Blue, Mana.Black, Mana.Red, Mana.Green]);
+    } else if (name == "Simian Spirit Guide") {
+        return new Ritual(name, [], [Mana.Red]);
+    } else if (name == "Elvish Spirit Guide") {
+        return new Ritual(name, [], [Mana.Green]);
+    } else if (name == "Lotus Petal") {
+        return new Ritual(name, cost, [Mana.Rainbow]);
+    } else if (name == "Mox Pearl") {
+        return new Ritual(name, cost, [Mana.White]);
+    } else if (name == "Mox Jet") {
+        return new Ritual(name, cost, [Mana.Black]);
+    } else if (name == "Mox Ruby") {
+        return new Ritual(name, cost, [Mana.Red]);
+    } else if (name == "Mox Emerald") {
+        return new Ritual(name, cost, [Mana.Green]);
+    } else if (name == "Mox Sapphire") {
+        return new Ritual(name, cost, [Mana.Blue]);
+    } else if (name == "Strike It Rich") {
+        return new Ritual(name, cost, [Mana.Rainbow]);
+    } else if (name == "Wild Cantor") {
+        return new Ritual(name, cost, [Mana.Rainbow]);
+    } else if (name == "Manamorphose") {
+        return new Ritual(name, cost, [Mana.Rainbow, Mana.Rainbow]);
+    }
+    return null;
+}
+
 export function CreateCardFromDatabase(name: string) {
     if (!loaded) {
         LoadDatabase();
@@ -172,7 +216,12 @@ export function CreateCardFromDatabase(name: string) {
         let produced_mana: string[] = data["produced_mana"];
         card = new Land(data.name, ParseProducedMana(produced_mana));
     } else {
-        card = new Card(data.name, cost);
+        let knownCard = CreateKnownCard(data.name, cost);
+        if (knownCard != null) {
+            card = knownCard;
+        } else {
+            card = new Card(data.name, cost);
+        }
     }
     card.typeLine = type_line;
     return card;
