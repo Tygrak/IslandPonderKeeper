@@ -6,24 +6,19 @@ import { RunTests } from "./tests";
 import { Mana } from "./mana";
 import { Land } from "./land";
 import { CleanDatabase, GetDeckPrettyString, LoadDatabase, LoadFile, ParseManacostScryfall, ReadDeckData, ReadDeckDekData } from "./deckImport";
-import { CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard, CheckRuleHasCastableCards, CheckRuleHasCardsOfType, CastabilityRequirement, CheckRuleLandCount, Rule, ManaProductionRule, AnyCardRule, LandsNumberRule, CastableCardsRule, AllCardRule, RequiredTypesRule } from "./rules";
+import { CheckRuleManaProduction, CheckRuleMatchesAllCards, CheckRuleMatchesAnyCard, CheckRuleHasCastableCards, CheckRuleHasCardsOfType, CastabilityRequirement, CheckRuleLandCount, Rule, ManaProductionRule, AnyCardRule, LandsNumberRule, CastableCardsRule, AllCardRule, RequiredTypesRule, AndRule, OrRule } from "./rules";
 
 const resultsDiv = document.getElementById('results') as HTMLDivElement;
 const deckInput = document.getElementById('deckInput') as HTMLTextAreaElement;
 const deckLoadFileInput = document.getElementById('deckLoadFileInput') as HTMLInputElement;
 
 const simulatedGamesInput = document.getElementById('simulatedGames') as HTMLInputElement;
-const minWantedLandsInput = document.getElementById('minWantedLands') as HTMLInputElement;
-const maxWantedLandsInput = document.getElementById('maxWantedLands') as HTMLInputElement;
-const requiredCardsAnyInput = document.getElementById('requiredCardsAny') as HTMLInputElement;
-const requiredCardsAllInput = document.getElementById('requiredCardsAll') as HTMLInputElement;
-const wantedAvailableManaInput = document.getElementById('wantedAvailableMana') as HTMLInputElement;
-const wantedCastableCardsInput = document.getElementById('wantedCastableCards') as HTMLInputElement;
-const wantedTypesInput = document.getElementById('wantedTypes') as HTMLInputElement;
 
 const runSimulationButton = document.getElementById('runSimulation') as HTMLButtonElement;
 const importDeckButton = document.getElementById('importDeck') as HTMLButtonElement;
 const deckLoadButton = document.getElementById('deckLoadButton') as HTMLButtonElement;
+const clearRulesButton = document.getElementById('clearRulesButton') as HTMLButtonElement;
+const rulesDiv: HTMLDivElement = document.getElementById("rules") as HTMLDivElement;
 
 let deck: Card[] = [];
 let currentRules: Rule[] = [];
@@ -39,6 +34,7 @@ function Initialize() {
     currentRules.push(new RequiredTypesRule(null));
     currentRules.push(new AnyCardRule(null));
     currentRules.push(new AllCardRule(null));
+    currentRules.push(new OrRule(null));
     if (deckInput.value.length > 5) {
         ImportDeck();
     }
@@ -59,18 +55,6 @@ function GetOpeningHandStats(withMulligans: boolean = false) {
         return;
     }
     let num = parseInt(simulatedGamesInput.value);
-    let minLands = parseInt(minWantedLandsInput.value);
-    let maxLands = parseInt(maxWantedLandsInput.value);
-    let wantedCastableCards = parseInt(wantedCastableCardsInput.value);
-    let castabilityType = CastabilityRequirement.None;
-    let castabilityTypeInput = document.querySelector('input[name="castabilityType"]:checked');
-    if (castabilityTypeInput != null && castabilityTypeInput instanceof HTMLInputElement && castabilityTypeInput.value == "WithLands") {
-        castabilityType = CastabilityRequirement.CastableWithLands;
-    } else if (castabilityTypeInput != null && castabilityTypeInput instanceof HTMLInputElement && castabilityTypeInput.value == "WithRituals") {
-        castabilityType = CastabilityRequirement.CastableWithRituals;
-    } else if (castabilityTypeInput != null && castabilityTypeInput instanceof HTMLInputElement && castabilityTypeInput.value == "WithRitualsT1") {
-        castabilityType = CastabilityRequirement.CastableWithRitualsT1;
-    }
 
     let state = GameState.CreateWithDeck(deck);
 
@@ -91,12 +75,9 @@ function GetOpeningHandStats(withMulligans: boolean = false) {
         landNumbers[landNumber]++;
         while (state.hand.length > 0) {
             let matchesRules = true;
-            matchesRules = matchesRules && CheckRuleLandCount(state, minLands, maxLands);
-            matchesRules = matchesRules && CheckRuleManaProduction(state, wantedAvailableManaInput.value);
-            matchesRules = matchesRules && CheckRuleHasCastableCards(state, wantedCastableCards);
-            matchesRules = matchesRules && CheckRuleHasCardsOfType(state, wantedTypesInput.value, castabilityType);
-            matchesRules = matchesRules && CheckRuleMatchesAnyCard(state, requiredCardsAnyInput.value, castabilityType);
-            matchesRules = matchesRules && CheckRuleMatchesAllCards(state, requiredCardsAllInput.value, castabilityType);
+            for (let i = 0; i < currentRules.length; i++) {
+                matchesRules = matchesRules && currentRules[i].Evaluate(state);
+            }
             if (matchesRules) {
                 if (exampleHands.length < 5) {
                     exampleHands.push("Keep: "+state.hand.map(c => c.name).join(", "));
@@ -160,4 +141,10 @@ deckLoadButton.onclick = (ev) => {
             deckInput.value = GetDeckPrettyString(deck);
         });
     }
+};
+
+clearRulesButton.onclick = (ev) => {
+    currentRules = [];
+    rulesDiv.innerHTML = "";
+    currentRules.push(new AndRule(null));
 };

@@ -151,7 +151,7 @@ function FindCardInDatabase(name: string) {
     return data;
 }
 
-function CreateKnownCard(name: string, cost: Mana[]) {
+function CreateKnownRitualCard(name: string, cost: Mana[]) {
     if (name == "Dark Ritual") {
         return new Ritual(name, cost, [Mana.Black, Mana.Black, Mana.Black]);
     } else if (name == "Cabal Ritual") {
@@ -215,8 +215,11 @@ export function CreateCardFromDatabase(name: string) {
     if (type_line !== undefined && type_line.indexOf("Land") != -1) {
         let produced_mana: string[] = data["produced_mana"];
         card = new Land(data.name, ParseProducedMana(produced_mana));
+        if (card.name == "Thran Portal") {
+            (card as Land).produces = Mana.Rainbow;
+        }
     } else {
-        let knownCard = CreateKnownCard(data.name, cost);
+        let knownCard = CreateKnownRitualCard(data.name, cost);
         if (knownCard != null) {
             card = knownCard;
         } else {

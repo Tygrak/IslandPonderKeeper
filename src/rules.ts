@@ -32,6 +32,9 @@ export class Rule {
     constructor (parent: Rule | null) {
         this.parent = parent;
         this.div = this.CreateDivElement();
+        if (parent != null) {
+            parent.subRules.push(this);
+        }
     }
 
     private CreateDivElement() {
@@ -53,12 +56,15 @@ export class Rule {
 export class ManaProductionRule extends Rule {
     label: HTMLLabelElement;
     input: HTMLInputElement;
+    castabilityElement: CastabilityRequirementElement;
 
     constructor (parent: Rule | null) {
         super(parent);
+        this.castabilityElement = new CastabilityRequirementElement(this.div);
         this.input = document.createElement('input');
         this.input.type = "text";
         this.input.name = GetUniqueInputName();
+        this.input.size = 20;
         this.label = document.createElement('label');
         this.label.innerText = "Can Produce Mana (symbols WUBRG, split with /[,;|]/)";
         this.label.htmlFor = this.input.name;
@@ -67,7 +73,7 @@ export class ManaProductionRule extends Rule {
     }
 
     public Evaluate(gameState: GameState) {
-        return CheckRuleManaProduction(gameState, this.input.value);
+        return CheckRuleManaProduction(gameState, this.input.value, this.castabilityElement.GetValue());
     }
 }
 
@@ -82,8 +88,9 @@ export class AnyCardRule extends Rule {
         this.input = document.createElement('input');
         this.input.type = "text";
         this.input.name = GetUniqueInputName();
+        this.input.size = 50;
         this.label = document.createElement('label');
-        this.label.innerText = "Required Cards for Keep (any, split with |)";
+        this.label.innerText = "Any Card (split with |)";
         this.label.htmlFor = this.input.name;
         this.div.appendChild(this.input);
         this.div.appendChild(this.label);
@@ -105,8 +112,9 @@ export class AllCardRule extends Rule {
         this.input = document.createElement('input');
         this.input.type = "text";
         this.input.name = GetUniqueInputName();
+        this.input.size = 50;
         this.label = document.createElement('label');
-        this.label.innerText = "Required Cards for Keep (all, split with |)";
+        this.label.innerText = "All Cards (split with |)";
         this.label.htmlFor = this.input.name;
         this.div.appendChild(this.input);
         this.div.appendChild(this.label);
@@ -128,6 +136,7 @@ export class RequiredTypesRule extends Rule {
         this.input = document.createElement('input');
         this.input.type = "text";
         this.input.name = GetUniqueInputName();
+        this.input.size = 50;
         this.label = document.createElement('label');
         this.label.innerText = "Required Card Types in Hand (split with /[,;|]/)";
         this.label.htmlFor = this.input.name;
@@ -177,6 +186,7 @@ export class LandsNumberRule extends Rule {
         this.inputMin.value = "1";
         this.inputMin.min = "0";
         this.inputMin.max = "7";
+        this.inputMin.size = 5;
         this.inputMin.name = GetUniqueInputName();
         this.labelMin = document.createElement('label');
         this.labelMin.innerText = "Minimum Lands for Keep";
@@ -188,6 +198,7 @@ export class LandsNumberRule extends Rule {
         this.inputMax.value = "5";
         this.inputMax.min = "0";
         this.inputMax.max = "7";
+        this.inputMax.size = 5;
         this.inputMax.name = GetUniqueInputName();
         this.labelMax = document.createElement('label');
         this.labelMax.innerText = "Maximum Lands for Keep";
@@ -198,6 +209,85 @@ export class LandsNumberRule extends Rule {
 
     public Evaluate(gameState: GameState) {
         return CheckRuleLandCount(gameState, parseInt(this.inputMin.value), parseInt(this.inputMax.value));
+    }
+}
+
+export class CreateRuleElement {
+    parent: BooleanRule;
+    div: HTMLDivElement;
+    button: HTMLButtonElement;
+    optionButtons: HTMLButtonElement[] = [];
+
+    constructor (parent: BooleanRule) {
+        this.parent = parent;
+        this.div = document.createElement('div');
+        this.parent.div.appendChild(this.div);
+        this.button = document.createElement('button');
+        this.button.innerText = "+ Add Rule";
+        this.div.appendChild(this.button);
+        this.button.onclick = (ev) => {
+            this.div.removeChild(this.button);
+            this.optionButtons.push(this.CreateOptionButton("Or", () => {new OrRule(this.parent);}));
+            this.optionButtons.push(this.CreateOptionButton("And", () => {new AndRule(this.parent);}));
+            this.optionButtons.push(this.CreateOptionButton("LandsNumber", () => {new LandsNumberRule(this.parent);}));
+            this.optionButtons.push(this.CreateOptionButton("ManaProduction", () => {new ManaProductionRule(this.parent);}));
+            this.optionButtons.push(this.CreateOptionButton("CastableNumber", () => {new CastableCardsRule(this.parent);}));
+            this.optionButtons.push(this.CreateOptionButton("Types", () => {new RequiredTypesRule(this.parent);}));
+            this.optionButtons.push(this.CreateOptionButton("Name (Any)", () => {new AnyCardRule(this.parent);}));
+            this.optionButtons.push(this.CreateOptionButton("Name (All)", () => {new AllCardRule(this.parent);}));
+        };
+    }
+
+    private CreateOptionButton(text: string, result: Function) {
+        let button = document.createElement('button');
+        button.innerText = text;
+        this.div.appendChild(button);
+        button.onclick = (ev) => {
+            result();
+            this.parent.div.removeChild(this.div);
+            this.parent.addRuleElement = new CreateRuleElement(this.parent);
+        };
+        return button;
+    }
+}
+
+export class BooleanRule extends Rule {
+    addRuleElement: CreateRuleElement;
+
+    constructor (parent: Rule | null, text: string) {
+        super(parent);
+        this.div.innerText = text;
+        this.addRuleElement = new CreateRuleElement(this);
+    }
+}
+
+export class OrRule extends BooleanRule {
+    constructor (parent: Rule | null) {
+        super(parent, "Or Rule");
+    }
+
+    public Evaluate(gameState: GameState) {
+        for (let i = 0; i < this.subRules.length; i++) {
+            if (this.subRules[i].Evaluate(gameState)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+export class AndRule extends BooleanRule {
+    constructor (parent: Rule | null) {
+        super(parent, "And Rule");
+    }
+
+    public Evaluate(gameState: GameState) {
+        for (let i = 0; i < this.subRules.length; i++) {
+            if (!this.subRules[i].Evaluate(gameState)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
@@ -212,7 +302,7 @@ export function CheckRuleLandCount(gameState: GameState, minLands: number, maxLa
     return lands >= minLands && lands <= maxLands;
 }
 
-export function CheckRuleManaProduction(gameState: GameState, wantedAvailableMana: string) {
+export function CheckRuleManaProduction(gameState: GameState, wantedAvailableMana: string, castability: CastabilityRequirement = CastabilityRequirement.CastableWithLands) {
     wantedAvailableMana = wantedAvailableMana.trim();
     if (wantedAvailableMana == "") {
         return true;
@@ -252,7 +342,13 @@ export function CheckRuleManaProduction(gameState: GameState, wantedAvailableMan
         }
     }
     let availableMana = gameState.AvailableManaInHand();
-    return IsCastable(availableMana, manaCost);
+    if (castability == CastabilityRequirement.CastableWithRituals) {
+        return IsCastableWithRituals(gameState, manaCost);
+    } else if (castability == CastabilityRequirement.CastableWithRitualsT1) {
+        return IsCastableWithRitualsT1(gameState, manaCost);
+    } else {
+        return IsCastable(availableMana, manaCost);
+    }
 }
 
 export function CheckRuleMatchesAnyCard(gameState: GameState, requiredCardsInput: string, castability: CastabilityRequirement = CastabilityRequirement.None) {

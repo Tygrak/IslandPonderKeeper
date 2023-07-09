@@ -23,7 +23,7 @@ export class CastabilityRequirementElement {
         let radioName = GetUniqueInputName();
         this.description = document.createElement('div');
         this.description.innerText = "Castability requirement for rule:";
-        this.parent.appendChild(this.description);
+        this.div.appendChild(this.description);
         this.castabilityRadio1 = document.createElement('input');
         this.castabilityRadio1.type = "radio";
         this.castabilityRadio1.value = "None";
