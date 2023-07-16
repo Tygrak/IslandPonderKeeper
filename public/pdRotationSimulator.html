@@ -15,7 +15,7 @@
             <input type="file" id="deckLoadFileInput" name="deckLoadFileInput" accept=".txt,.dek">
          </div>
          <div>
-            Force rotated cards input: 
+            Force rotated cards input (default is current top 100 pd cards): 
          </div>
          <textarea id="bannedCardsInput" name="bannedCardsInput" rows="22" cols="60">
 Silent Gravestone
@@ -114,14 +114,10 @@ Sulfur Falls
          <div class="errorOutput" id="errorOutput">
             
          </div>
+         <button id="randomGenerateButton">Generate Random Banlist from X% of cards</button>
+         <input type="number" id="randomGenerateInput" name="randomGenerateInput" value="30">
       </div>
       <div class="item2">
-         <div>
-            <button id="exportResultToFileButton">Export Result to MTGO Collection File</button>
-         </div>
-         <div>
-            <button id="exportResultToTextFileButton">Export Result to Text File</button>
-         </div>
          <textarea class="results" id="results">
             Output
          </textarea>
