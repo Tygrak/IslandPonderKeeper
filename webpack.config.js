@@ -4,7 +4,8 @@ const bundleOutputDir = "./public";
 module.exports = {
     entry: {
         main: "./src/main",
-        pdCollection: "./src/collectionChecker"
+        pdCollection: "./src/collectionChecker",
+        pdRotation: "./src/pdRotation"
     },
     output: {
         filename: "[name].bundle.js",

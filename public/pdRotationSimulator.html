@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<head>
+   <meta charset="utf-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <title>Island Ponder Keeper - Pd Rotation Change Simulator</title>
+   <meta name="description" content="">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+   <div class="grid">
+      <div class="item1">
+         <div>
+            <button id="deckLoadButton">Load Decks</button>
+            <input type="file" id="deckLoadFileInput" name="deckLoadFileInput" accept=".txt,.dek">
+         </div>
+         <div>
+            Force rotated cards input: 
+         </div>
+         <textarea id="bannedCardsInput" name="bannedCardsInput" rows="22" cols="60">
+Silent Gravestone
+Ponder
+Duress
+Treasure Cruise
+Gitaxian Probe
+Spell Pierce
+Dark Ritual
+Bloodchief's Thirst
+Lose Focus
+Lurrus of the Dream-Den
+Sudden Edict
+Scrabbling Claws
+Orim's Chant
+Chain Lightning
+Memory Lapse
+Defense Grid
+Repeal
+Wrath of God
+Lost Legacy
+Caves of Koilos
+Arcum's Astrolabe	
+Purify the Grave
+Drowned Catacomb
+Isolated Chapel
+Scarab Feast
+Glacial Fortress
+Dryad Militant
+Pyroclasm
+Negate
+Phyrexian Censor
+Cabal Ritual
+Simian Spirit Guide
+Curse of Shaken Faith
+Vindicate
+Ghost Quarter
+Tidehollow Sculler
+Cleansing Wildfire
+Council's Judgment
+Kaya, Ghost Assassin
+Steel Sabotage
+Forbid
+Fact or Fiction
+Feed the Swarm
+Frantic Search
+Smuggler's Copter
+Founding the Third Path
+Seal of Cleansing
+Oust
+Condemn
+Burst Lightning
+Silverbluff Bridge
+Celestial Colonnade
+Jokulhaups
+Yavimaya Coast
+Yorion, Sky Nomad
+Ossification
+Mana Leak
+Ground Seal
+Sylvan Library
+Sweltering Suns
+Cut Down
+Mishra's Factory
+Dispel
+Impulse
+Erebos's Intervention
+Dragonskull Summit
+Stern Dismissal
+Timeless Dragon
+Leonin Relic-Warder
+Shivan Reef
+Shambling Vent
+Birds of Paradise
+Tendrils of Agony
+Dread Return
+Scab-Clan Berserker
+Spikefield Hazard
+Sleight of Hand
+Fetid Heath
+Drossforge Bridge
+Cerulean Drake	
+Mind's Desire
+Malakir Rebirth
+Hinterland Harbor
+Goblin Charbelcher
+Rebuild
+Pelakka Predation
+Blackbloom Rogue
+Idyllic Beachfront
+Choked Estuary
+Dark Petition
+Narcomoeba
+Sulfur Falls
+         </textarea>
+         <div class="errorOutput" id="errorOutput">
+            
+         </div>
+      </div>
+      <div class="item2">
+         <div>
+            <button id="exportResultToFileButton">Export Result to MTGO Collection File</button>
+         </div>
+         <div>
+            <button id="exportResultToTextFileButton">Export Result to Text File</button>
+         </div>
+         <textarea class="results" id="results">
+            Output
+         </textarea>
+         <div class="resultsText" id="resultsText">
+            
+         </div>
+      </div>
+   </div>
+
+   <script src="pdRotation.bundle.js"></script>
+   <script>
+   </script>
+</body>
+</html>
